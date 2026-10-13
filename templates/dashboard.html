@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Dashboard — PrivacyVault AI{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="letter-spacing: -0.02em;">Privacy Intelligence Dashboard</h2>
+        <div class="text-muted small">Live database analytics & aggregate risk telemetry derived from scanned documents.</div>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('main.upload') }}" class="btn-primary-custom text-decoration-none">
+            <i class="bi bi-cloud-arrow-up-fill"></i> New File Scan
+        </a>
+        <button class="btn btn-secondary-custom" onclick="refreshDashboardData()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh Data
+        </button>
+    </div>
+</div>
+
+<!-- 4 Top KPI Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="pv-card metric-card h-100">
+            <div>
+                <div class="metric-label">Total Files Scanned</div>
+                <div class="metric-value text-cyan" id="metric-total-scans">{{ stats.total_scans }}</div>
+                <div class="small text-muted mt-1"><i class="bi bi-check-circle-fill text-success"></i> Across 5 supported formats</div>
+            </div>
+            <div class="metric-icon-box" style="background: rgba(0, 210, 255, 0.1); color: var(--accent-cyan);">
+                <i class="bi bi-file-earmark-check"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-6 col-xl-3">
+        <div class="pv-card metric-card h-100">
+            <div>
+                <div class="metric-label">Total Findings Intercepted</div>
+                <div class="metric-value" style="color: var(--sev-high);" id="metric-total-findings">{{ stats.total_findings }}</div>
+                <div class="small text-muted mt-1"><i class="bi bi-shield-shaded text-warning"></i> Masked & categorized</div>
+            </div>
+            <div class="metric-icon-box" style="background: rgba(255, 145, 0, 0.1); color: var(--sev-high);">
+                <i class="bi bi-search"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-6 col-xl-3">
+        <div class="pv-card metric-card h-100">
+            <div>
+                <div class="metric-label">Critical / High Threats</div>
+                <div class="metric-value text-danger" id="metric-critical-findings">{{ stats.critical_findings + stats.high_findings }}</div>
+                <div class="small text-muted mt-1"><span class="badge badge-critical px-1 py-0">{{ stats.critical_findings }} Critical</span> <span class="badge badge-high px-1 py-0">{{ stats.high_findings }} High</span></div>
+            </div>
+            <div class="metric-icon-box" style="background: rgba(255, 23, 68, 0.1); color: var(--sev-critical);">
+                <i class="bi bi-shield-x"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-6 col-xl-3">
+        <div class="pv-card metric-card h-100">
+            <div>
+                <div class="metric-label">Average Risk Index</div>
+                <div class="metric-value" id="metric-avg-risk">{{ stats.avg_risk_score }} <span class="fs-6 text-muted">/100</span></div>
+                <div class="small text-muted mt-1"><i class="bi bi-bell-fill text-info"></i> {{ stats.total_leakage_alerts }} Leakage alerts logged</div>
+            </div>
+            <div class="metric-icon-box" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-indigo);">
+                <i class="bi bi-speedometer"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Findings by Category (Doughnut) -->
+    <div class="col-lg-4">
+        <div class="pv-card h-100">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-pie-chart text-cyan"></i> Findings by Category</h5>
+                <span class="small text-muted">Sensitivity Classes</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chart 2: Severity Distribution (Bar) -->
+    <div class="col-lg-4">
+        <div class="pv-card h-100">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-bar-chart text-warning"></i> Risk Severity Distribution</h5>
+                <span class="small text-muted">Finding Tiers</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="severityChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chart 3: Top Sensitive Data Types (Horizontal Bar) -->
+    <div class="col-lg-4">
+        <div class="pv-card h-100">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-card-checklist text-success"></i> Most Common Data Types</h5>
+                <span class="small text-muted">Top Patterns</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="dataTypesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Scans Table Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="pv-card">
+            <div class="pv-card-header flex-wrap gap-2">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-clock-history text-cyan"></i> Recent File Privacy Scans</h5>
+                    <div class="text-muted small mt-1">Database-backed scan executions with direct drill-down links.</div>
+                </div>
+                
+                <a href="{{ url_for('main.history') }}" class="btn btn-sm btn-secondary-custom">
+                    View Complete History ({{ stats.total_scans }}) <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            
+            {% if stats.recent_scans %}
+            <div class="table-responsive">
+                <table class="pv-table">
+                    <thead>
+                        <tr>
+                            <th>Document Name</th>
+                            <th>Format</th>
+                            <th>Scanned Date</th>
+                            <th>Risk Score</th>
+                            <th>Severity Tier</th>
+                            <th>Findings</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in stats.recent_scans %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('scan.summary', scan_id=s.id) }}" class="fw-bold text-decoration-none text-light">
+                                    <i class="bi bi-file-earmark-text text-cyan me-1"></i> {{ s.original_filename }}
+                                </a>
+                            </td>
+                            <td><span class="badge bg-dark border text-muted">{{ s.file_type | upper }}</span></td>
+                            <td class="text-muted">{{ s.scan_timestamp | format_date }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="risk-meter-container" style="width: 70px;">
+                                        <div class="risk-meter-fill" style="width: {{ s.risk_score }}%; background: {% if s.risk_level == 'CRITICAL' %}var(--sev-critical){% elif s.risk_level == 'HIGH' %}var(--sev-high){% elif s.risk_level == 'MEDIUM' %}var(--sev-medium){% else %}var(--sev-low){% endif %};"></div>
+                                    </div>
+                                    <span class="fw-bold">{{ s.risk_score }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="pv-badge {{ s.risk_level | risk_badge_class }}">{{ s.risk_level }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-light">{{ s.finding_count }} items</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('scan.summary', scan_id=s.id) }}" class="btn btn-outline-info" title="View Summary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('scan.findings', scan_id=s.id) }}" class="btn btn-outline-warning" title="View Findings">
+                                        <i class="bi bi-search"></i>
+                                    </a>
+                                    <a href="{{ url_for('api.export_pdf', scan_id=s.id) }}" class="btn btn-outline-danger" title="Download PDF Report">
+                                        <i class="bi bi-file-pdf"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-folder2-open display-4 text-muted mb-3 d-block"></i>
+                <h5 class="text-muted">No documents scanned yet</h5>
+                <p class="text-muted small">Upload your first document or click below to run an instant demonstration scan.</p>
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                    <button class="btn btn-sm btn-primary-custom" onclick="quickScanSample('csv')">
+                        <i class="bi bi-play-circle"></i> Run Sample CSV Scan
+                    </button>
+                    <a href="{{ url_for('main.upload') }}" class="btn btn-sm btn-secondary-custom">
+                        <i class="bi bi-upload"></i> Upload File
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // Pass real database stats from Flask into Chart.js init
+    const initialStats = {{ stats | tojson }};
+    document.addEventListener("DOMContentLoaded", () => {
+        initDashboardCharts(initialStats);
+    });
+
+    async function quickScanSample(sampleKey) {
+        showToast("Processing synthetic sample scan...");
+        try {
+            const res = await fetch("/api/scan-sample", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sample_key: sampleKey })
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = data.redirect_url;
+            } else {
+                showToast("Scan failed: " + data.error, true);
+            }
+        } catch(e) {
+            showToast("Error: " + e, true);
+        }
+    }
+</script>
+{% endblock %}

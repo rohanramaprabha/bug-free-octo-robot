@@ -1,0 +1,28 @@
+{
+  "environment": "staging-us-east-1",
+  "cluster_name": "k8s-prod-cluster",
+  "cloud_provider": "AWS",
+  "security": {
+    "aws_access_key_id": "YOUR_AWS_ACCESS_KEY_ID",
+    "aws_secret_context": "YOUR_AWS_SECRET_KEY",
+    "slack_webhook_bot": "YOUR_SLACK_WEBHOOK_TOKEN"
+  },
+  "database": {
+    "host": "YOUR_DATABASE_HOST",
+    "port": 5432,
+    "username": "YOUR_DATABASE_USERNAME",
+    "password": "YOUR_DATABASE_PASSWORD"
+  },
+  "authorized_engineers": [
+    {
+      "name": "Example DevOps Engineer",
+      "email": "devops@example.com",
+      "role": "DevOps Lead"
+    },
+    {
+      "name": "Example Security Engineer",
+      "email": "security@example.com",
+      "role": "Security Architect"
+    }
+  ]
+}

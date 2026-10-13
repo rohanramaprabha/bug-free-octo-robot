@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Summary — {{ scan.original_filename }} — PrivacyVault AI{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Left Column: Risk Gauge & File Metadata Card -->
+    <div class="col-lg-4">
+        <!-- Risk Overview Card -->
+        <div class="pv-card mb-4 text-center">
+            <div class="small text-muted fw-bold mb-2">PRIVACY RISK CLASSIFICATION</div>
+            
+            <div class="my-3">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle border" 
+                     style="width: 130px; height: 130px; border-width: 4px !important; border-color: {% if scan.risk_level == 'CRITICAL' %}var(--sev-critical){% elif scan.risk_level == 'HIGH' %}var(--sev-high){% elif scan.risk_level == 'MEDIUM' %}var(--sev-medium){% else %}var(--sev-low){% endif %} !important; background: rgba(0,0,0,0.2);">
+                    <div>
+                        <div class="display-5 fw-bold mb-0" style="letter-spacing: -0.04em;">{{ scan.risk_score }}</div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">OUT OF 100</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <span class="pv-badge {{ scan.risk_level | risk_badge_class }} fs-6 px-3 py-1">
+                    {{ scan.risk_level }} RISK LEVEL
+                </span>
+            </div>
+            
+            <div class="p-3 rounded text-start mb-3" style="background: var(--bg-surface-elevated);">
+                <div class="small text-muted fw-bold mb-1"><i class="bi bi-cpu text-cyan"></i> ML Document Classification:</div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <strong class="text-light">{{ scan.ml_category }}</strong>
+                    <span class="badge bg-dark border text-cyan">{{ (scan.ml_confidence * 100) | round | int }}% Conf.</span>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('scan.findings', scan_id=scan.id) }}" class="btn-primary-custom text-center justify-content-center text-decoration-none">
+                    <i class="bi bi-search"></i> Inspect {{ scan.finding_count }} Findings
+                </a>
+                <a href="{{ url_for('api.export_pdf', scan_id=scan.id) }}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
+                </a>
+                <a href="{{ url_for('api.export_redacted', scan_id=scan.id) }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-shield-check"></i> Download Redacted File
+                </a>
+            </div>
+        </div>
+        
+        <!-- File Metadata Card -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-info-circle text-cyan"></i> Document Properties</h5>
+            </div>
+            
+            <ul class="list-unstyled mb-0 small">
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">Filename:</span>
+                    <strong class="text-truncate ms-2" style="max-width: 180px;">{{ scan.original_filename }}</strong>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">File Format:</span>
+                    <span class="badge bg-dark border text-cyan">{{ scan.file_type | upper }}</span>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">File Size:</span>
+                    <span>{{ scan.file_size_bytes | filesize_kb }}</span>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">Scanned At:</span>
+                    <span>{{ scan.scan_timestamp | format_date }}</span>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">Scan Status:</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">{{ scan.status }}</span>
+                </li>
+                
+                <!-- Specific Metadata (PDF/DOCX/CSV) -->
+                {% if scan.metadata %}
+                    {% for k, v in scan.metadata.items() %}
+                        {% if k not in ['extraction_error', 'ml_top_keywords', 'total_segments_scanned'] and v %}
+                        <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                            <span class="text-muted text-capitalize">{{ k.replace('_', ' ') }}:</span>
+                            <span class="text-truncate ms-2" style="max-width: 170px;">{{ v }}</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Right Column: Findings Breakdown, Risk Justification & Remediation -->
+    <div class="col-lg-8">
+        <!-- Risk Justification & Factors Card -->
+        <div class="pv-card mb-4">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-shield-alert text-warning"></i> Risk Scoring Factors & Mathematical Justification</h5>
+                <a href="{{ url_for('scan.risk_analysis', scan_id=scan.id) }}" class="btn btn-sm btn-secondary-custom">
+                    Detailed Math <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            
+            <p class="text-muted small mb-3">
+                Risk score calculated via multi-tier severity weighting with logarithmic frequency dampening and exposure multiplier factors:
+            </p>
+            
+            <div class="row g-2 mb-3">
+                {% for reason in scan.risk_reasons %}
+                <div class="col-12">
+                    <div class="p-2 px-3 rounded small d-flex align-items-center gap-2" style="background: var(--bg-surface-elevated); border-left: 3px solid var(--accent-cyan);">
+                        <i class="bi bi-check2-circle text-cyan"></i>
+                        <span>{{ reason }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Data Leakage Alerts Preview -->
+        {% if leakage_alerts %}
+        <div class="pv-card mb-4">
+            <div class="pv-card-header">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-shield-exclamation text-danger"></i> Data Exposure & Leakage Alerts ({{ leakage_alerts | length }})</h5>
+                    <div class="text-muted small mt-1">Identified potential privacy exposure risks across coordinates.</div>
+                </div>
+                <a href="{{ url_for('scan.leakage_analysis', scan_id=scan.id) }}" class="btn btn-sm btn-secondary-custom">
+                    Full Leakage Report <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="d-flex flex-column gap-3">
+                {% for alert in leakage_alerts[:3] %}
+                <div class="p-3 rounded" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <strong class="text-light"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> {{ alert.alert_title }}</strong>
+                        <span class="pv-badge {{ alert.severity | risk_badge_class }}">{{ alert.severity }}</span>
+                    </div>
+                    <div class="small text-muted mb-2">{{ alert.description }}</div>
+                    <div class="small p-2 rounded" style="background: rgba(0,0,0,0.2);">
+                        <strong class="text-cyan"><i class="bi bi-lightbulb"></i> Recommended Action:</strong> {{ alert.recommendation }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Remediation Plan Checklist Card -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-clipboard2-check text-success"></i> Regulatory Remediation Action Plan</h5>
+                    <div class="text-muted small mt-1">Prescribed steps mapped to GDPR, PCI-DSS, HIPAA, and DPDP Act.</div>
+                </div>
+                <div class="d-flex gap-1">
+                    {% for fw in remediation_plan.compliance_frameworks %}
+                    <span class="badge bg-dark border text-muted">{{ fw }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="d-flex flex-column gap-3">
+                {% for action in remediation_plan.immediate_actions %}
+                <div class="p-3 rounded" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <strong class="text-light">{{ action.action }}</strong>
+                        <span class="pv-badge {{ action.priority | risk_badge_class }}">{{ action.priority }} PRIORITY</span>
+                    </div>
+                    <ul class="mb-0 ps-3 small text-muted">
+                        {% for step in action.steps %}
+                        <li class="mb-1">{{ step }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteScan('{{ scan.id }}')">
+                    <i class="bi bi-trash"></i> Delete Scan Record & File
+                </button>
+                <a href="{{ url_for('scan.export', scan_id=scan.id) }}" class="btn btn-sm btn-primary-custom">
+                    <i class="bi bi-download"></i> Open Export Center
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                <h5 class="modal-title text-danger"><i class="bi bi-trash"></i> Confirm Scan Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-muted">
+                Are you sure you want to permanently delete this scan record, all associated findings, and remove the uploaded file from the server? This action cannot be undone.
+            </div>
+            <div class="modal-footer border-top" style="border-color: var(--border-color) !important;">
+                <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Permanently Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let scanToDelete = null;
+const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+function confirmDeleteScan(scanId) {
+    scanToDelete = scanId;
+    deleteModal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+    if (!scanToDelete) return;
+    try {
+        const res = await fetch(`/api/scan/${scanToDelete}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            deleteModal.hide();
+            showToast("Scan record deleted successfully.");
+            setTimeout(() => {
+                window.location.href = "{{ url_for('main.history') }}";
+            }, 600);
+        } else {
+            showToast("Deletion failed", true);
+        }
+    } catch (e) {
+        showToast("Error deleting scan: " + e, true);
+    }
+});
+</script>
+{% endblock %}

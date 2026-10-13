@@ -1,0 +1,4 @@
+customer_id,full_name,email_address,phone_number,pan_number,credit_card_no,public_notes
+CUST-1001,Rohan Verma,rohan.verma@example.com,+91 98765 43210,ABCDE1234F,4532015112830366,User requested priority shipping. Contacted via phone.
+CUST-1002,Priya Sharma,priya.sharma@domain.org,+91 87654 32109,BKZPS8821K,5424180123456789,User provided backup email priya.work@example.com in comments.
+CUST-1003,Amitabh Sen,amitabh.sen@testmail.com,9123456780,XYZPA9988C,4000123456789010,Billing address verified. No remarks.

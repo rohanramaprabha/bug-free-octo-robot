@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document or Dataset — PrivacyVault AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-2">
+    <div class="col-lg-10 col-xl-9">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h2 class="fw-bold mb-1" style="letter-spacing: -0.02em;">Document & Dataset Upload</h2>
+                <div class="text-muted small">Select or drop a file to run comprehensive sensitive data detection and leakage analysis.</div>
+            </div>
+            
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm btn-secondary-custom">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+        
+        <!-- Main Upload Card -->
+        <div class="pv-card mb-4">
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="upload-dropzone mb-4" id="dropzone">
+                    <input type="file" id="file-input" name="file" accept=".pdf,.docx,.txt,.csv,.json" class="d-none">
+                    <div class="dropzone-icon">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">Drag & Drop Your Document Here</h4>
+                    <p class="text-muted small mb-3">
+                        or <span class="text-cyan fw-bold text-decoration-underline" style="cursor: pointer;">browse your computer</span> to choose a file
+                    </p>
+                    
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                        <span class="badge bg-dark border text-muted px-2 py-1"><i class="bi bi-file-earmark-pdf text-danger"></i> PDF Document</span>
+                        <span class="badge bg-dark border text-muted px-2 py-1"><i class="bi bi-file-earmark-word text-primary"></i> DOCX Document</span>
+                        <span class="badge bg-dark border text-muted px-2 py-1"><i class="bi bi-file-earmark-text text-info"></i> Plaintext / TXT</span>
+                        <span class="badge bg-dark border text-muted px-2 py-1"><i class="bi bi-file-earmark-spreadsheet text-success"></i> CSV Dataset</span>
+                        <span class="badge bg-dark border text-muted px-2 py-1"><i class="bi bi-filetype-json text-warning"></i> JSON Dataset</span>
+                    </div>
+                    <div class="small text-muted mt-2">Maximum file size: 25 MB • Safe isolated parsing</div>
+                </div>
+                
+                <!-- Selected File Preview & Progress Box -->
+                <div id="file-preview-card" class="p-3 rounded mb-3 d-none" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi bi-file-earmark-check fs-2 text-cyan"></i>
+                            <div>
+                                <div class="fw-bold" id="selected-file-name">filename.ext</div>
+                                <div class="text-muted small" id="selected-file-size">0 KB</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-remove-file">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Scan Progress Bar -->
+                    <div id="scan-progress-wrapper" class="mt-3 d-none">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span id="scan-status-text">Validating file signature & structure...</span>
+                            <span id="scan-percent-text">20%</span>
+                        </div>
+                        <div class="progress" style="height: 8px; background: rgba(255,255,255,0.08);">
+                            <div id="scan-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: 20%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Submit Action -->
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary-custom" id="btn-cancel-upload" style="display: none;">Cancel</button>
+                    <button type="submit" class="btn-primary-custom px-4" id="btn-submit-scan" disabled>
+                        <i class="bi bi-shield-check"></i>
+                        <span>Start Privacy & Leakage Scan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Pre-loaded Synthetic Sample Datasets Card -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-box-seam text-warning"></i> Quick Demo — Synthetic Sample Datasets</h5>
+                    <div class="text-muted small mt-1">Test the detection pipeline instantly using realistic, completely safe synthetic test files.</div>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Ready to Test</span>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <div class="p-3 rounded h-100 d-flex flex-column justify-content-between" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-file-earmark-spreadsheet text-success fs-4"></i>
+                                <strong class="small">sample_customer_records.csv</strong>
+                            </div>
+                            <p class="text-muted small mb-3">Tabular dataset with Indian PAN, Luhn-valid test credit cards, phones, and comments column.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-success w-100" onclick="triggerSampleScan('csv')">
+                            <i class="bi bi-play-fill"></i> Scan Customer CSV
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-4">
+                    <div class="p-3 rounded h-100 d-flex flex-column justify-content-between" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-filetype-json text-warning fs-4"></i>
+                                <strong class="small">sample_cloud_infrastructure.json</strong>
+                            </div>
+                            <p class="text-muted small mb-3">Structured JSON with AWS access keys, Slack webhook tokens, passwords, and server IPs.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-warning w-100" onclick="triggerSampleScan('json')">
+                            <i class="bi bi-play-fill"></i> Scan Cloud JSON
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-4">
+                    <div class="p-3 rounded h-100 d-flex flex-column justify-content-between" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-file-earmark-text text-info fs-4"></i>
+                                <strong class="small">sample_developer_credentials.txt</strong>
+                            </div>
+                            <p class="text-muted small mb-3">Developer deployment note exposing GitHub PAT, RSA Private Key headers, and database credentials.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-info w-100" onclick="triggerSampleScan('txt')">
+                            <i class="bi bi-play-fill"></i> Scan Dev Notes TXT
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-6">
+                    <div class="p-3 rounded h-100 d-flex flex-column justify-content-between" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-file-earmark-word text-primary fs-4"></i>
+                                <strong class="small">sample_confidential_contract.docx</strong>
+                            </div>
+                            <p class="text-muted small mb-3">Word document with NDA clauses, M&A executive salary proposals, and author metadata properties.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="triggerSampleScan('docx')">
+                            <i class="bi bi-play-fill"></i> Scan Contract DOCX
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-6">
+                    <div class="p-3 rounded h-100 d-flex flex-column justify-content-between" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
+                                <strong class="small">sample_patient_records.pdf</strong>
+                            </div>
+                            <p class="text-muted small mb-3">Clinical PDF intake dossier containing US SSN (123-45-6789), banking routing, and patient names.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger w-100" onclick="triggerSampleScan('pdf')">
+                            <i class="bi bi-play-fill"></i> Scan Patient PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/scanner.js') }}"></script>
+{% endblock %}

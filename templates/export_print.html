@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Audit Report — {{ scan.original_filename }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        .header-box {
+            border-bottom: 2px solid #0284c7;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .table-custom {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+        .table-custom th, .table-custom td {
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 0.75rem;
+            vertical-align: top;
+        }
+        .table-custom th {
+            background-color: #f1f5f9;
+        }
+        .badge-print {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .crit { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+        .high { background: #ffedd5; color: #ea580c; border: 1px solid #fdba74; }
+        .med { background: #e0f2fe; color: #0284c7; border: 1px solid #7dd3fc; }
+        .low { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print mb-4 d-flex justify-content-between align-items-center bg-light p-3 rounded border">
+        <div>
+            <strong>Printable Executive Audit Report</strong> — Ready for printing or browser PDF export.
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print / Save as PDF
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="window.close()">
+                Close Window
+            </button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header-box d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-1">PrivacyVault AI — Privacy Audit Report</h2>
+            <div class="text-muted small">CONFIDENTIAL ASSESSMENT • Generated: {{ scan.scan_timestamp }}</div>
+        </div>
+        <div class="text-end">
+            <div class="fs-3 fw-bold">{{ scan.risk_score }} / 100</div>
+            <div class="badge-print {% if scan.risk_level == 'CRITICAL' %}crit{% elif scan.risk_level == 'HIGH' %}high{% elif scan.risk_level == 'MEDIUM' %}med{% else %}low{% endif %}">
+                {{ scan.risk_level }} RISK
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Info Card -->
+    <table class="table-custom">
+        <tr>
+            <th style="width: 20%;">Target Document</th>
+            <td style="width: 30%;">{{ scan.original_filename }}</td>
+            <th style="width: 20%;">File Format / Size</th>
+            <td style="width: 30%;">{{ scan.file_type | upper }} ({{ (scan.file_size_bytes / 1024) | round(1) }} KB)</td>
+        </tr>
+        <tr>
+            <th>Total Findings</th>
+            <td>{{ scan.finding_count }} detected items</td>
+            <th>ML Classification</th>
+            <td>{{ scan.ml_category }} ({{ (scan.ml_confidence * 100) | round | int }}% confidence)</td>
+        </tr>
+    </table>
+
+    <!-- Risk Justifications -->
+    <h5 class="fw-bold mt-4 mb-2">Risk Scoring Justifications</h5>
+    <ul class="small mb-4">
+        {% for r in scan.risk_reasons %}
+        <li>{{ r }}</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Leakage Alerts -->
+    {% if leakage_alerts %}
+    <h5 class="fw-bold mt-4 mb-2">Data Leakage & Exposure Alerts</h5>
+    <table class="table-custom">
+        <thead>
+            <tr>
+                <th>Alert Title</th>
+                <th>Severity</th>
+                <th>Location</th>
+                <th>Risk & Recommended Directive</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in leakage_alerts %}
+            <tr>
+                <td><strong>{{ a.alert_title }}</strong></td>
+                <td><span class="badge-print {% if a.severity == 'CRITICAL' %}crit{% elif a.severity == 'HIGH' %}high{% else %}med{% endif %}">{{ a.severity }}</span></td>
+                <td><code>{{ a.location_ref }}</code></td>
+                <td>{{ a.description }}<br/><strong>Remediation:</strong> {{ a.recommendation }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Findings Table -->
+    <h5 class="fw-bold mt-4 mb-2">Detected Sensitive Findings (Masked)</h5>
+    <table class="table-custom">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Finding Type</th>
+                <th>Category</th>
+                <th>Severity</th>
+                <th>Masked Evidence</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in findings %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ f.finding_type }}</td>
+                <td>{{ f.category }}</td>
+                <td>
+                    <span class="badge-print {% if f.severity == 'CRITICAL' %}crit{% elif f.severity == 'HIGH' %}high{% elif f.severity == 'MEDIUM' %}med{% else %}low{% endif %}">
+                        {{ f.severity }}
+                    </span>
+                </td>
+                <td><code>{{ f.masked_value }}</code></td>
+                <td>{{ f.location_ref }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="mt-4 pt-3 border-top small text-muted">
+        PrivacyVault AI Security Dossier • Values masked by default for privacy preservation.
+    </div>
+</body>
+</html>

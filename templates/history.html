@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Scan History — PrivacyVault AI{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="letter-spacing: -0.02em;">Scan History & Audit Log</h2>
+        <div class="text-muted small">Searchable archive of all historical document privacy evaluations and risk assessments.</div>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('main.upload') }}" class="btn-primary-custom text-decoration-none">
+            <i class="bi bi-cloud-arrow-up-fill"></i> New File Scan
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filtering Header -->
+<div class="pv-card mb-4 p-3">
+    <form method="GET" class="row g-2 align-items-center">
+        <!-- Search Input -->
+        <div class="col-md-5">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control bg-dark border-secondary text-light" placeholder="Search filename or ML category..." value="{{ current_search }}">
+            </div>
+        </div>
+        
+        <!-- Severity Tier -->
+        <div class="col-md-3">
+            <select name="severity" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="this.form.submit()">
+                <option value="ALL" {% if current_severity == 'ALL' %}selected{% endif %}>All Severity Tiers</option>
+                <option value="CRITICAL" {% if current_severity == 'CRITICAL' %}selected{% endif %}>Critical Risk</option>
+                <option value="HIGH" {% if current_severity == 'HIGH' %}selected{% endif %}>High Risk</option>
+                <option value="MEDIUM" {% if current_severity == 'MEDIUM' %}selected{% endif %}>Medium Risk</option>
+                <option value="LOW" {% if current_severity == 'LOW' %}selected{% endif %}>Low Risk</option>
+            </select>
+        </div>
+        
+        <!-- File Format -->
+        <div class="col-md-2">
+            <select name="file_type" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="this.form.submit()">
+                <option value="ALL" {% if current_file_type == 'ALL' %}selected{% endif %}>All Formats</option>
+                <option value="pdf" {% if current_file_type == 'pdf' %}selected{% endif %}>PDF</option>
+                <option value="docx" {% if current_file_type == 'docx' %}selected{% endif %}>DOCX</option>
+                <option value="txt" {% if current_file_type == 'txt' %}selected{% endif %}>TXT</option>
+                <option value="csv" {% if current_file_type == 'csv' %}selected{% endif %}>CSV</option>
+                <option value="json" {% if current_file_type == 'json' %}selected{% endif %}>JSON</option>
+            </select>
+        </div>
+        
+        <!-- Submit & Clear -->
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary-custom w-100">Filter</button>
+            {% if current_severity != 'ALL' or current_file_type != 'ALL' or current_search %}
+            <a href="{{ url_for('main.history') }}" class="btn btn-sm btn-secondary-custom" title="Reset Filters">
+                <i class="bi bi-x-circle"></i>
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Scans History Table -->
+<div class="pv-card">
+    {% if scans %}
+    <div class="table-responsive">
+        <table class="pv-table">
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>Format</th>
+                    <th>File Size</th>
+                    <th>Scanned At</th>
+                    <th>Risk Score</th>
+                    <th>Severity Tier</th>
+                    <th>Findings</th>
+                    <th>ML Classification</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in scans %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('scan.summary', scan_id=s.id) }}" class="fw-bold text-decoration-none text-light">
+                            <i class="bi bi-file-earmark-text text-cyan me-1"></i> {{ s.original_filename }}
+                        </a>
+                    </td>
+                    <td><span class="badge bg-dark border text-cyan">{{ s.file_type | upper }}</span></td>
+                    <td class="text-muted">{{ s.file_size_bytes | filesize_kb }}</td>
+                    <td class="text-muted small">{{ s.scan_timestamp | format_date }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="risk-meter-container" style="width: 55px;">
+                                <div class="risk-meter-fill" style="width: {{ s.risk_score }}%; background: {% if s.risk_level == 'CRITICAL' %}var(--sev-critical){% elif s.risk_level == 'HIGH' %}var(--sev-high){% elif s.risk_level == 'MEDIUM' %}var(--sev-medium){% else %}var(--sev-low){% endif %};"></div>
+                            </div>
+                            <span class="fw-bold small">{{ s.risk_score }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="pv-badge {{ s.risk_level | risk_badge_class }}">{{ s.risk_level }}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-light">{{ s.finding_count }} items</span>
+                    </td>
+                    <td>
+                        <span class="small text-muted">{{ s.ml_category }}</span>
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('scan.summary', scan_id=s.id) }}" class="btn btn-outline-info" title="Summary View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ url_for('scan.findings', scan_id=s.id) }}" class="btn btn-outline-warning" title="View Findings">
+                                <i class="bi bi-search"></i>
+                            </a>
+                            <a href="{{ url_for('api.export_pdf', scan_id=s.id) }}" class="btn btn-outline-danger" title="Download PDF Report">
+                                <i class="bi bi-file-pdf"></i>
+                            </a>
+                            <button class="btn btn-outline-danger" onclick="deleteHistoryScan('{{ s.id }}')" title="Delete Scan">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-clock-history display-4 text-muted mb-3 d-block"></i>
+        <h5 class="text-light">No historical scan records found</h5>
+        <p class="text-muted small">Scans will appear here after analyzing documents or testing sample datasets.</p>
+        <a href="{{ url_for('main.upload') }}" class="btn btn-sm btn-primary-custom mt-2">
+            <i class="bi bi-cloud-arrow-up"></i> Upload Document Now
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function deleteHistoryScan(scanId) {
+    if (!confirm("Are you sure you want to permanently delete this scan record and its uploaded file?")) return;
+    try {
+        const res = await fetch(`/api/scan/${scanId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Scan deleted.");
+            setTimeout(() => window.location.reload(), 500);
+        } else {
+            showToast("Error deleting scan", true);
+        }
+    } catch(e) {
+        showToast("Network error: " + e, true);
+    }
+}
+</script>
+{% endblock %}

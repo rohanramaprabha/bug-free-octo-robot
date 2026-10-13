@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}PrivacyVault AI — Intelligent Data Privacy and Leakage Prevention{% endblock %}
+
+{% block content %}
+<div class="row align-items-center py-4 my-2">
+    <!-- Hero Text -->
+    <div class="col-lg-7 mb-4 mb-lg-0">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.25);">
+            <i class="bi bi-shield-check text-cyan"></i>
+            <span class="small fw-semibold" style="color: var(--accent-cyan);">Intelligent Data Privacy & Leakage Shield</span>
+        </div>
+        
+        <h1 class="display-4 fw-bold mb-3" style="letter-spacing: -0.03em;">
+            Scan, Classify & Prevent <br/>
+            <span style="background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Sensitive Data Leaks
+            </span>
+        </h1>
+        
+        <p class="lead text-muted mb-4" style="max-width: 620px;">
+            A privacy-preserving security intelligence system that parses documents and datasets, 
+            detects exposed PII, credentials, and financial identifiers, and alerts on critical leakage vectors before you publish or share.
+        </p>
+        
+        <div class="d-flex flex-wrap gap-3">
+            <a href="{{ url_for('main.upload') }}" class="btn-primary-custom text-decoration-none px-4 py-2" id="hero-btn-scan">
+                <i class="bi bi-cloud-arrow-up-fill fs-5"></i>
+                <span>Scan Document or Dataset</span>
+            </a>
+            <a href="{{ url_for('main.dashboard') }}" class="btn-secondary-custom text-decoration-none px-4 py-2" id="hero-btn-dashboard">
+                <i class="bi bi-speedometer2 fs-5"></i>
+                <span>Live Dashboard</span>
+            </a>
+        </div>
+        
+        <!-- Trust & Formats Bar -->
+        <div class="d-flex align-items-center gap-4 mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+            <div class="small text-muted fw-bold">SUPPORTED FORMATS:</div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-dark border text-cyan px-2 py-1">PDF</span>
+                <span class="badge bg-dark border text-cyan px-2 py-1">DOCX</span>
+                <span class="badge bg-dark border text-cyan px-2 py-1">TXT</span>
+                <span class="badge bg-dark border text-cyan px-2 py-1">CSV</span>
+                <span class="badge bg-dark border text-cyan px-2 py-1">JSON</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hero Live Stats Card -->
+    <div class="col-lg-5">
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-activity text-cyan"></i> Privacy System Telemetry</h5>
+                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-circle-fill" style="font-size: 7px;"></i> Database Active</span>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 rounded" style="background: var(--bg-surface-elevated);">
+                        <div class="text-muted small fw-bold">TOTAL SCANS</div>
+                        <div class="fs-2 fw-bold text-cyan">{{ stats.total_scans }}</div>
+                        <div class="small text-muted">Documents analyzed</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded" style="background: var(--bg-surface-elevated);">
+                        <div class="text-muted small fw-bold">TOTAL FINDINGS</div>
+                        <div class="fs-2 fw-bold" style="color: var(--sev-high);">{{ stats.total_findings }}</div>
+                        <div class="small text-muted">Masked & logged</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded" style="background: var(--bg-surface-elevated);">
+                        <div class="text-muted small fw-bold">CRITICAL THREATS</div>
+                        <div class="fs-2 fw-bold text-danger">{{ stats.critical_findings }}</div>
+                        <div class="small text-muted">Secrets & Direct PII</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded" style="background: var(--bg-surface-elevated);">
+                        <div class="text-muted small fw-bold">LEAKAGE ALERTS</div>
+                        <div class="fs-2 fw-bold" style="color: var(--sev-medium);">{{ stats.total_leakage_alerts }}</div>
+                        <div class="small text-muted">Vectors neutralized</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Demo Sample Launcher -->
+            <div class="mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                <div class="small text-muted fw-bold mb-2"><i class="bi bi-play-circle text-cyan"></i> INSTANT DEMONSTRATION WITH SYNTHETIC SAMPLES:</div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="quickScanSample('csv')">
+                        <i class="bi bi-file-earmark-spreadsheet text-success"></i> Customer CSV
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="quickScanSample('json')">
+                        <i class="bi bi-filetype-json text-warning"></i> Cloud Config JSON
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="quickScanSample('docx')">
+                        <i class="bi bi-file-earmark-word text-primary"></i> M&A Contract DOCX
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="quickScanSample('pdf')">
+                        <i class="bi bi-file-earmark-pdf text-danger"></i> Patient Intake PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Architecture Pipeline Workflow -->
+<div class="row my-4">
+    <div class="col-12">
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-diagram-3 text-cyan"></i> Complete Application Architecture Pipeline</h5>
+                <span class="small text-muted">Modular End-to-End Processing Flow</span>
+            </div>
+            
+            <div class="row g-3 text-center">
+                <div class="col-md-2">
+                    <div class="p-3 rounded h-100" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div class="fs-3 text-cyan mb-2"><i class="bi bi-cloud-upload"></i></div>
+                        <div class="fw-bold small">1. Ingestion & Validation</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">MIME, Magic Bytes, Size check</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="p-3 rounded h-100" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div class="fs-3 text-info mb-2"><i class="bi bi-file-text"></i></div>
+                        <div class="fw-bold small">2. Text Extraction</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Pages, Lines, Rows, Columns</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="p-3 rounded h-100" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div class="fs-3 text-warning mb-2"><i class="bi bi-search"></i></div>
+                        <div class="fw-bold small">3. Sensitive Detection</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Regex + Luhn + Shannon Entropy</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="p-3 rounded h-100" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div class="fs-3 text-primary mb-2"><i class="bi bi-cpu"></i></div>
+                        <div class="fw-bold small">4. Risk & ML Model</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">scikit-learn + Weighted Formula</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="p-3 rounded h-100" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div class="fs-3 text-danger mb-2"><i class="bi bi-shield-slash"></i></div>
+                        <div class="fw-bold small">5. Leakage Vector</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Co-occurrence & Public Columns</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="p-3 rounded h-100" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                        <div class="fs-3 text-success mb-2"><i class="bi bi-file-earmark-check"></i></div>
+                        <div class="fw-bold small">6. Audit & Export</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">ReportLab PDF, CSV & Redaction</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4 Core Pillars Cards -->
+<div class="row g-4 my-2">
+    <div class="col-md-6 col-lg-3">
+        <div class="pv-card h-100">
+            <div class="metric-icon-box mb-3" style="background: rgba(0, 210, 255, 0.1); color: var(--accent-cyan);">
+                <i class="bi bi-eye-slash-fill"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Automated Value Masking</h5>
+            <p class="text-muted small mb-0">
+                Zero sensitive credentials logged or exposed. Values like credit cards, emails, and AWS keys are masked in-flight (<code>****1234</code>, <code>AKIA****</code>).
+            </p>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="pv-card h-100">
+            <div class="metric-icon-box mb-3" style="background: rgba(255, 145, 0, 0.1); color: var(--sev-high);">
+                <i class="bi bi-cpu-fill"></i>
+            </div>
+            <h5 class="fw-bold mb-2">ML Document Classification</h5>
+            <p class="text-muted small mb-0">
+                Integrated scikit-learn TF-IDF & Naive Bayes model trained on privacy categories. Outputs document sensitivity and key feature tokens transparently.
+            </p>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="pv-card h-100">
+            <div class="metric-icon-box mb-3" style="background: rgba(255, 23, 68, 0.1); color: var(--sev-critical);">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Data Leakage Prevention</h5>
+            <p class="text-muted small mb-0">
+                Identifies dangerous multi-field co-occurrence (Name + Card), sensitive data inside public column headers, and unencrypted keys in configurations.
+            </p>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="pv-card h-100">
+            <div class="metric-icon-box mb-3" style="background: rgba(0, 230, 118, 0.1); color: var(--sev-low);">
+                <i class="bi bi-file-earmark-pdf-fill"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Executive Audit Exports</h5>
+            <p class="text-muted small mb-0">
+                Instant PDF audit dossier with executive summary and risk gauges using ReportLab, plus downloadable sanitized/redacted document copies.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function quickScanSample(sampleKey) {
+    showToast("Launching instant scan on synthetic " + sampleKey.toUpperCase() + " sample...");
+    try {
+        const res = await fetch("/api/scan-sample", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sample_key: sampleKey })
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            showToast("Scan error: " + data.error, true);
+        }
+    } catch (e) {
+        showToast("Error triggering sample scan: " + e, true);
+    }
+}
+</script>
+{% endblock %}

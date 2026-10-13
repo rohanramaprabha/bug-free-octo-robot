@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Detailed Findings — {{ scan.original_filename }} — PrivacyVault AI{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="letter-spacing: -0.02em;">Detected Sensitive Findings</h2>
+        <div class="text-muted small">
+            Displaying {{ findings | length }} findings from <strong>{{ scan.original_filename }}</strong> with sanitized masked values.
+        </div>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('api.export_csv', scan_id=scan.id) }}" class="btn btn-sm btn-secondary-custom">
+            <i class="bi bi-filetype-csv text-success"></i> Export Findings CSV
+        </a>
+        <a href="{{ url_for('scan.export', scan_id=scan.id) }}" class="btn btn-sm btn-primary-custom">
+            <i class="bi bi-download"></i> Export Dossier
+        </a>
+    </div>
+</div>
+
+<!-- Interactive Search & Filtering Bar -->
+<div class="pv-card mb-4 p-3">
+    <form method="GET" class="row g-2 align-items-center">
+        <!-- Live Search -->
+        <div class="col-md-4">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control bg-dark border-secondary text-light" placeholder="Search finding type, masked text, location..." value="{{ current_search }}" id="findings-search-input">
+            </div>
+        </div>
+        
+        <!-- Category Filter -->
+        <div class="col-md-3">
+            <select name="category" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="this.form.submit()">
+                <option value="ALL" {% if current_category == 'ALL' %}selected{% endif %}>All Categories</option>
+                <option value="PII" {% if current_category == 'PII' %}selected{% endif %}>Personally Identifiable Info (PII)</option>
+                <option value="Financial Information" {% if current_category == 'Financial Information' %}selected{% endif %}>Financial Information</option>
+                <option value="Authentication Secrets" {% if current_category == 'Authentication Secrets' %}selected{% endif %}>Authentication Secrets</option>
+                <option value="Confidential Business Information" {% if current_category == 'Confidential Business Information' %}selected{% endif %}>Confidential Business</option>
+            </select>
+        </div>
+        
+        <!-- Severity Filter -->
+        <div class="col-md-3">
+            <select name="severity" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="this.form.submit()">
+                <option value="ALL" {% if current_severity == 'ALL' %}selected{% endif %}>All Severities</option>
+                <option value="CRITICAL" {% if current_severity == 'CRITICAL' %}selected{% endif %}>Critical Risk</option>
+                <option value="HIGH" {% if current_severity == 'HIGH' %}selected{% endif %}>High Risk</option>
+                <option value="MEDIUM" {% if current_severity == 'MEDIUM' %}selected{% endif %}>Medium Risk</option>
+                <option value="LOW" {% if current_severity == 'LOW' %}selected{% endif %}>Low Risk</option>
+            </select>
+        </div>
+        
+        <!-- Reset & Submit -->
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary-custom w-100">Filter</button>
+            {% if current_category != 'ALL' or current_severity != 'ALL' or current_search %}
+            <a href="{{ url_for('scan.findings', scan_id=scan.id) }}" class="btn btn-sm btn-secondary-custom" title="Clear Filters">
+                <i class="bi bi-x-circle"></i>
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Findings Results Table / Cards -->
+<div class="pv-card">
+    {% if findings %}
+    <div class="table-responsive">
+        <table class="pv-table">
+            <thead>
+                <tr>
+                    <th style="width: 45px;">#</th>
+                    <th>Finding Type</th>
+                    <th>Category</th>
+                    <th>Severity</th>
+                    <th>Masked Evidence</th>
+                    <th>Location Coordinates</th>
+                    <th>Surrounding Context</th>
+                    <th class="text-end">Remediation & Analysis</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in findings %}
+                <tr>
+                    <td class="text-muted fw-bold">{{ loop.index }}</td>
+                    <td>
+                        <strong>{{ f.finding_type }}</strong>
+                        <div class="text-muted font-mono" style="font-size: 0.72rem;">{{ f.rule_id }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-dark border text-muted small">{{ f.category }}</span>
+                    </td>
+                    <td>
+                        <span class="pv-badge {{ f.severity | risk_badge_class }}">{{ f.severity }}</span>
+                    </td>
+                    <td>
+                        <div class="d-inline-flex align-items-center gap-1">
+                            <span class="masked-pill">{{ f.masked_value }}</span>
+                            <button class="btn btn-sm p-0 text-muted" onclick="copyToClipboard('{{ f.masked_value }}')" title="Copy masked evidence">
+                                <i class="bi bi-clipboard" style="font-size: 0.8rem;"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="small text-light font-mono"><i class="bi bi-geo-alt text-cyan me-1"></i>{{ f.location_ref }}</span>
+                    </td>
+                    <td>
+                        <div class="small text-muted font-mono text-truncate" style="max-width: 240px;" title="{{ f.context_snippet }}">
+                            {{ f.context_snippet }}
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-info" 
+                                onclick="openExplainModal({{ f | tojson | forceescape }})">
+                            <i class="bi bi-lightbulb"></i> AI Explain
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-shield-check display-4 text-success mb-3 d-block"></i>
+        <h5 class="text-light">No findings match the current filter criteria</h5>
+        <p class="text-muted small">Try broadening your search or resetting category and severity filters.</p>
+        <a href="{{ url_for('scan.findings', scan_id=scan.id) }}" class="btn btn-sm btn-secondary-custom">
+            Reset Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- AI Explanation Modal -->
+<div class="modal fade" id="explainModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                <h5 class="modal-title" id="explainModalTitle">
+                    <i class="bi bi-cpu text-cyan me-2"></i> Privacy Threat & Compliance Analysis
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="p-3 rounded mb-3" style="background: var(--bg-surface-elevated);">
+                    <div class="row g-2 small">
+                        <div class="col-sm-6"><strong>Finding:</strong> <span id="modal-finding-type">Type</span></div>
+                        <div class="col-sm-6"><strong>Category:</strong> <span id="modal-category">Category</span></div>
+                        <div class="col-sm-6"><strong>Severity:</strong> <span id="modal-severity">Severity</span></div>
+                        <div class="col-sm-6"><strong>Location:</strong> <span id="modal-location">Location</span></div>
+                        <div class="col-12 mt-2"><strong>Masked Evidence:</strong> <code id="modal-masked-val">****</code></div>
+                    </div>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="modal-loading" class="text-center py-4 d-none">
+                    <div class="spinner-border text-cyan mb-2" role="status"></div>
+                    <div class="small text-muted">Consulting Privacy Intelligence Knowledge Base...</div>
+                </div>
+                
+                <!-- Explanation Content -->
+                <div id="modal-explanation-body" class="small text-light" style="line-height: 1.7; white-space: pre-line;">
+                </div>
+            </div>
+            <div class="modal-footer border-top d-flex justify-content-between" style="border-color: var(--border-color) !important;">
+                <span class="small text-muted" id="modal-source-label">Source: Local Privacy Engine</span>
+                <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const explainModal = new bootstrap.Modal(document.getElementById('explainModal'));
+
+async function openExplainModal(finding) {
+    document.getElementById('modal-finding-type').textContent = finding.finding_type;
+    document.getElementById('modal-category').textContent = finding.category;
+    document.getElementById('modal-severity').textContent = finding.severity;
+    document.getElementById('modal-location').textContent = finding.location_ref;
+    document.getElementById('modal-masked-val').textContent = finding.masked_value;
+    
+    const loadingEl = document.getElementById('modal-loading');
+    const bodyEl = document.getElementById('modal-explanation-body');
+    const sourceLabel = document.getElementById('modal-source-label');
+    
+    bodyEl.textContent = "";
+    loadingEl.classList.remove('d-none');
+    explainModal.show();
+    
+    try {
+        const res = await fetch("/api/explain-finding", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(finding)
+        });
+        const data = await res.json();
+        loadingEl.classList.add('d-none');
+        bodyEl.innerHTML = formatMarkdownText(data.explanation);
+        sourceLabel.textContent = "Engine: " + data.source;
+    } catch (e) {
+        loadingEl.classList.add('d-none');
+        bodyEl.textContent = "Error generating explanation: " + e;
+    }
+}
+
+function formatMarkdownText(text) {
+    if (!text) return "";
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-cyan">$1</strong>')
+        .replace(/`(.*?)`/g, '<code class="bg-dark px-1 text-warning">$1</code>');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Rules & Settings — PrivacyVault AI{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="letter-spacing: -0.02em;">Detection Rules & System Settings</h2>
+        <div class="text-muted small">Configure modular detection patterns, inspect scoring thresholds, and adjust runtime options.</div>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('main.upload') }}" class="btn-primary-custom text-decoration-none">
+            <i class="bi bi-cloud-arrow-up"></i> Test Rules on Upload
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Detection Rules Toggle Table -->
+    <div class="col-lg-8">
+        <div class="pv-card mb-4">
+            <div class="pv-card-header flex-wrap gap-2">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-shield-check text-cyan"></i> Active Detection Rules & Validators</h5>
+                    <div class="text-muted small mt-1">Modular rules can be enabled or disabled dynamically without restarting the server.</div>
+                </div>
+                <span class="badge bg-dark border text-cyan">{{ rules | length }} Rules Registered</span>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="pv-table">
+                    <thead>
+                        <tr>
+                            <th>Rule Name & ID</th>
+                            <th>Category</th>
+                            <th>Severity</th>
+                            <th>Detection Mechanism</th>
+                            <th class="text-end">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in rules %}
+                        <tr>
+                            <td>
+                                <strong class="text-light">{{ r.name }}</strong>
+                                <div class="text-muted font-mono" style="font-size: 0.72rem;">{{ r.rule_id }}</div>
+                            </td>
+                            <td><span class="badge bg-dark border text-muted small">{{ r.category }}</span></td>
+                            <td><span class="pv-badge {{ r.severity | risk_badge_class }}">{{ r.severity }}</span></td>
+                            <td>
+                                <div class="small text-muted font-mono text-truncate" style="max-width: 250px;" title="{{ r.pattern_summary }}">
+                                    {{ r.pattern_summary }}
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <div class="form-check form-switch d-inline-block">
+                                    <input class="form-check-input" type="checkbox" role="switch" 
+                                           id="rule-switch-{{ r.rule_id }}"
+                                           {% if r.enabled == 1 %}checked{% endif %}
+                                           onchange="toggleRuleStatus('{{ r.rule_id }}', this.checked)">
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Risk Scoring Weights & AI Settings -->
+    <div class="col-lg-4">
+        <!-- Optional AI Configuration Card -->
+        <div class="pv-card mb-4">
+            <div class="pv-card-header">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-robot text-cyan"></i> AI Explanation Engine</h5>
+                    <div class="text-muted small mt-1">Local & optional cloud assistant</div>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Offline Ready</span>
+            </div>
+            
+            <p class="text-muted small mb-3">
+                By default, PrivacyVault AI runs a <strong>100% offline expert privacy engine</strong> requiring zero cloud credentials.
+                Optionally, you may supply a Google Gemini API key below to enable extended cloud-assisted compliance explanations.
+            </p>
+            
+            <div class="mb-3">
+                <label class="form-label small text-muted fw-bold">Gemini API Key (Optional):</label>
+                <div class="input-group input-group-sm">
+                    <input type="password" id="gemini-key-input" class="form-control bg-dark border-secondary text-light font-mono" placeholder="AIzaSy...">
+                    <button class="btn btn-outline-secondary" type="button" onclick="toggleKeyVisibility()">
+                        <i class="bi bi-eye" id="key-vis-icon"></i>
+                    </button>
+                </div>
+                <div class="small text-muted mt-1" style="font-size: 0.72rem;">
+                    Key is stored locally in browser session storage only. Unmasked documents are never transmitted.
+                </div>
+            </div>
+            
+            <button class="btn btn-sm btn-secondary-custom w-100" onclick="saveGeminiKey()">
+                <i class="bi bi-check-lg"></i> Save AI Preference
+            </button>
+        </div>
+
+        <!-- System Architecture Information -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-hdd-network text-warning"></i> System Environment</h5>
+            </div>
+            
+            <ul class="list-unstyled small mb-0">
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">Storage Engine:</span>
+                    <strong class="text-light">SQLite 3 (WAL Mode)</strong>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">ML Architecture:</span>
+                    <strong class="text-light">scikit-learn Pipeline</strong>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">PDF Engine:</span>
+                    <strong class="text-light">pypdf & ReportLab 5</strong>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">DOCX Engine:</span>
+                    <strong class="text-light">python-docx</strong>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">Max Upload Limit:</span>
+                    <strong class="text-light">25 MB per file</strong>
+                </li>
+                <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">Privacy Policy:</span>
+                    <span class="badge bg-success-subtle text-success">Zero Secret Logging</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const savedKey = localStorage.getItem("pv_gemini_key") || "";
+    const keyInput = document.getElementById("gemini-key-input");
+    if (keyInput && savedKey) {
+        keyInput.value = savedKey;
+    }
+});
+
+function toggleKeyVisibility() {
+    const input = document.getElementById("gemini-key-input");
+    const icon = document.getElementById("key-vis-icon");
+    if (input.type === "password") {
+        input.type = "text";
+        icon.className = "bi bi-eye-slash";
+    } else {
+        input.type = "password";
+        icon.className = "bi bi-eye";
+    }
+}
+
+function saveGeminiKey() {
+    const key = document.getElementById("gemini-key-input").value.trim();
+    if (key) {
+        localStorage.setItem("pv_gemini_key", key);
+        showToast("Gemini API key saved in local storage.");
+    } else {
+        localStorage.removeItem("pv_gemini_key");
+        showToast("AI preferences reset to default local offline engine.");
+    }
+}
+
+async function toggleRuleStatus(ruleId, isEnabled) {
+    try {
+        const res = await fetch(`/api/rules/${ruleId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: isEnabled })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Rule '${ruleId}' ${isEnabled ? 'enabled' : 'disabled'}.`);
+        } else {
+            showToast("Failed to update rule status", true);
+        }
+    } catch (e) {
+        showToast("Error updating rule: " + e, true);
+    }
+}
+</script>
+{% endblock %}

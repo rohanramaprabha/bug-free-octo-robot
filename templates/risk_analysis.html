@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Risk Analysis — {{ scan.original_filename }} — PrivacyVault AI{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="letter-spacing: -0.02em;">Privacy Risk Classification & Modeling</h2>
+        <div class="text-muted small">
+            Transparent mathematical risk scoring formulation & scikit-learn Machine Learning document classification.
+        </div>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('scan.summary', scan_id=scan.id) }}" class="btn btn-sm btn-secondary-custom">
+            <i class="bi bi-arrow-left"></i> Summary
+        </a>
+        <a href="{{ url_for('scan.leakage_analysis', scan_id=scan.id) }}" class="btn btn-sm btn-primary-custom">
+            Leakage Analysis <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Risk Score & Mathematical Formula -->
+    <div class="col-lg-7">
+        <!-- Transparent Mathematical Scoring Model -->
+        <div class="pv-card mb-4">
+            <div class="pv-card-header">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-calculator text-cyan"></i> Mathematical Risk Scoring Model</h5>
+                    <div class="text-muted small mt-1">Multi-factor weighted severity with frequency dampening.</div>
+                </div>
+                <span class="pv-badge {{ scan.risk_level | risk_badge_class }}">{{ scan.risk_level }} ({{ scan.risk_score }}/100)</span>
+            </div>
+            
+            <p class="text-muted small">
+                Unlike opaque black-box metrics, PrivacyVault AI employs an explainable, deterministic scoring formula 
+                derived from findings volume, individual severity weights, logarithmic frequency dampening, and cross-category co-occurrence modifiers:
+            </p>
+            
+            <!-- Formula Math Box -->
+            <div class="p-3 rounded mb-3 font-mono" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); font-size: 0.85rem; color: var(--accent-cyan);">
+                $$\text{Score} = \min\left(100, \left(\sum_{t \in \text{Tiers}} W_t \cdot (1 + 0.5 \log_2(1 + N_t))\right) \times \prod M_{\text{context}}\right)$$
+            </div>
+            
+            <!-- Severity Weights Matrix -->
+            <div class="table-responsive mb-3">
+                <table class="pv-table">
+                    <thead>
+                        <tr>
+                            <th>Severity Tier</th>
+                            <th>Base Weight ($W_t$)</th>
+                            <th>Findings in File ($N_t$)</th>
+                            <th>Log-Dampened Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="pv-badge badge-critical">Critical</span></td>
+                            <td>25.0 pts</td>
+                            <td>{{ (findings | selectattr('severity', 'equalto', 'CRITICAL') | list | length) }}</td>
+                            <td class="text-danger fw-bold">High impact (Zero-tolerance floor)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="pv-badge badge-high">High</span></td>
+                            <td>15.0 pts</td>
+                            <td>{{ (findings | selectattr('severity', 'equalto', 'HIGH') | list | length) }}</td>
+                            <td class="text-warning fw-bold">Direct identifier weight</td>
+                        </tr>
+                        <tr>
+                            <td><span class="pv-badge badge-medium">Medium</span></td>
+                            <td>8.0 pts</td>
+                            <td>{{ (findings | selectattr('severity', 'equalto', 'MEDIUM') | list | length) }}</td>
+                            <td class="text-info fw-bold">Moderate exposure</td>
+                        </tr>
+                        <tr>
+                            <td><span class="pv-badge badge-low">Low</span></td>
+                            <td>3.0 pts</td>
+                            <td>{{ (findings | selectattr('severity', 'equalto', 'LOW') | list | length) }}</td>
+                            <td class="text-success fw-bold">Baseline presence</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Specific Reasons for this File -->
+            <h6 class="fw-bold text-light mb-2"><i class="bi bi-list-check text-cyan"></i> Active Modifiers for this Document:</h6>
+            <div class="d-flex flex-column gap-2">
+                {% for r in scan.risk_reasons %}
+                <div class="p-2 px-3 rounded small" style="background: var(--bg-surface-elevated); border-left: 3px solid var(--accent-cyan);">
+                    <i class="bi bi-arrow-right-short text-cyan"></i> {{ r }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Risk Tier Threshold Reference -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-layers text-warning"></i> Risk Severity Threshold Framework</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="pv-table">
+                    <thead>
+                        <tr>
+                            <th>Score Range</th>
+                            <th>Tier</th>
+                            <th>Action Mandatory</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr {% if scan.risk_level == 'CRITICAL' %}style="background: rgba(255,23,68,0.1);"{% endif %}>
+                            <td class="fw-bold font-mono">76 – 100</td>
+                            <td><span class="pv-badge badge-critical">Critical</span></td>
+                            <td class="small">Halt publishing immediately. Rotate exposed credentials, scrub PAN.</td>
+                        </tr>
+                        <tr {% if scan.risk_level == 'HIGH' %}style="background: rgba(255,145,0,0.1);"{% endif %}>
+                            <td class="fw-bold font-mono">51 – 75</td>
+                            <td><span class="pv-badge badge-high">High</span></td>
+                            <td class="small">Mandatory redaction of government IDs and direct financial records.</td>
+                        </tr>
+                        <tr {% if scan.risk_level == 'MEDIUM' %}style="background: rgba(0,210,255,0.1);"{% endif %}>
+                            <td class="fw-bold font-mono">26 – 50</td>
+                            <td><span class="pv-badge badge-medium">Medium</span></td>
+                            <td class="small">Apply pseudonymization to personal emails and contact fields.</td>
+                        </tr>
+                        <tr {% if scan.risk_level == 'LOW' %}style="background: rgba(0,230,118,0.1);"{% endif %}>
+                            <td class="fw-bold font-mono">0 – 25</td>
+                            <td><span class="pv-badge badge-low">Low</span></td>
+                            <td class="small">Safe for general internal sharing; periodic review recommended.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Machine Learning Model Details & Chart -->
+    <div class="col-lg-5">
+        <!-- Separate ML Classification Card -->
+        <div class="pv-card mb-4">
+            <div class="pv-card-header">
+                <div>
+                    <h5 class="pv-card-title"><i class="bi bi-cpu-fill text-cyan"></i> Machine Learning Classification</h5>
+                    <div class="text-muted small mt-1">scikit-learn TF-IDF + Naive Bayes Classifier</div>
+                </div>
+                <span class="badge bg-primary">ML Model</span>
+            </div>
+            
+            <div class="p-3 rounded mb-3 text-center" style="background: var(--bg-surface-elevated);">
+                <div class="text-muted small fw-bold mb-1">PREDICTED DOCUMENT SENSITIVITY CLASS</div>
+                <div class="fs-3 fw-bold text-cyan mb-2">{{ scan.ml_category }}</div>
+                <div>
+                    <span class="badge bg-dark border text-light px-3 py-1">
+                        Confidence: {{ (scan.ml_confidence * 100) | round | int }}%
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Top Informative Feature Keywords -->
+            <h6 class="fw-bold text-light mb-2 small"><i class="bi bi-key text-warning"></i> Top Salient Feature Tokens (TF-IDF):</h6>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                {% if scan.metadata.get('ml_top_keywords') %}
+                    {% for kw in scan.metadata.get('ml_top_keywords') %}
+                    <span class="badge bg-dark border text-cyan font-mono px-2 py-1">{{ kw }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="text-muted small">No salient privacy keywords extracted.</span>
+                {% endif %}
+            </div>
+            
+            <!-- Transparency Callout -->
+            <div class="p-3 rounded small" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color);">
+                <strong class="text-warning"><i class="bi bi-info-circle"></i> Architectural Transparency Notice:</strong>
+                <p class="text-muted mb-0 mt-1">
+                    Rule-based findings and ML predictions operate independently. The ML model classifies the overall thematic confidentiality 
+                    of the text corpus, while modular regex and checksum validators identify individual coordinate-level exposures.
+                </p>
+            </div>
+        </div>
+
+        <!-- Category Radar / Breakdown Visualization -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h5 class="pv-card-title"><i class="bi bi-pie-chart text-info"></i> Category Concentration</h5>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="riskCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Collect category counts from findings
+    const findings = {{ findings | tojson }};
+    const catCounts = {};
+    findings.forEach(f => {
+        catCounts[f.category] = (catCounts[f.category] || 0) + 1;
+    });
+
+    const ctx = document.getElementById('riskCategoryChart')?.getContext('2d');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(catCounts).length ? Object.keys(catCounts) : ['Clean Document'],
+                datasets: [{
+                    data: Object.values(catCounts).length ? Object.values(catCounts) : [1],
+                    backgroundColor: ['#00d2ff', '#ff9100', '#ff1744', '#6366f1', '#00e676'],
+                    borderWidth: 2,
+                    borderColor: '#111827'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
